@@ -18,6 +18,12 @@ ARCHIVE_URL = f'https://zenodo.org/records/{ZENODO_RECORD}/files/{ARCHIVE_NAME}?
 # md5 as shown on the Zenodo record page; skip the check with --no-verify.
 ARCHIVE_MD5 = '5e073fe91a50523ff03baf0f4307773c'
 
+WEIGHTS_LICENSE_URL = 'https://github.com/Riccarn/ESMRank/blob/master/LICENSE_WEIGHTS.md'
+WEIGHTS_LICENSE_NOTICE = (
+    'Note: the ESMRank model parameters are distributed under a non-commercial '
+    f'research license ({WEIGHTS_LICENSE_URL}). By downloading and using them you '
+    'agree to its terms.')
+
 
 def _md5_of(path):
     md5 = hashlib.md5()
@@ -113,6 +119,7 @@ def download_models(dest=None, force=False, verify=True, archive=None):
         print(f'model files already present in {dest} (use --force to re-download)')
         return dest
 
+    print(WEIGHTS_LICENSE_NOTICE, file=sys.stderr)
     dest.parent.mkdir(parents=True, exist_ok=True)
     downloaded = None
     if archive is not None:

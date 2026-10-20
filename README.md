@@ -189,6 +189,14 @@ The environment variables `ESM_GPU_IDS`, `ESM_WORKER_BATCH_SIZE`, `ESM_MODEL_NAM
 
 ---
 
+## License
+
+- **Source code**: Apache License 2.0, see [`LICENSE`](LICENSE).
+- **Pretrained model parameters** (downloaded with `esmrank download-models`): ESMRank Model Parameters Non-Commercial Research License, see [`LICENSE_WEIGHTS.md`](LICENSE_WEIGHTS.md). They may be used for non-commercial research and educational purposes only; commercial use requires written permission from the authors.
+- Third-party resources (Pfam-A HMMs, ESM-2 weights) keep their own licenses.
+
+---
+
 ## Citation
 
 If you use ESMRank in your research, please cite:

@@ -9,6 +9,8 @@ description = "A learn-to-rank approach for protein variant effect prediction"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
+# only the code license ships in the package; the model weights have their own (LICENSE_WEIGHTS.md)
+license-files = ["LICENSE"]
 authors = [
     { name = "Riccardo Arnese" },
     { name = "Gennaro Gambardella" },
