@@ -36,6 +36,8 @@ def build_parser():
     run.add_argument('--model-dir', default=None,
                      help='directory with the pretrained model files '
                           '(default: $ESMRANK_MODEL_DIR, ./model, then the user cache)')
+    run.add_argument('--download', action='store_true',
+                     help='download the model files first if they are not already present')
     run.add_argument('--gpus', type=_gpu_list, default=None, metavar='0,1',
                      help='comma-separated CUDA device ids (default: all, or $ESM_GPU_IDS)')
     run.add_argument('--batch-size', type=int, default=None,
@@ -65,7 +67,8 @@ def main(argv=None):
         run_pipeline(
             args.input, outdir=args.outdir, csv=args.csv, sub=args.sub,
             indel=args.indel, alanines=args.alanines, model_dir=args.model_dir,
-            esm_model=args.esm_model, batch_size=args.batch_size, gpu_ids=args.gpus)
+            esm_model=args.esm_model, batch_size=args.batch_size, gpu_ids=args.gpus,
+            auto_download=args.download)
     except (ValueError, FileNotFoundError) as exc:
         print(f'esmrank: error: {exc}', file=sys.stderr)
         return 2

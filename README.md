@@ -53,20 +53,40 @@ pytest
 
 ```bash
 esmrank run --input INPUT [-csv] [-sub] [-indel] [-alanines]
-            [--outdir DIR] [--model-dir DIR] [--gpus 0,1] [--batch-size N] [--esm-model NAME]
+            [--outdir DIR] [--model-dir DIR] [--download] [--gpus 0,1] [--batch-size N] [--esm-model NAME]
 ```
 
 Results are written to `<outdir>/<input file name>/` (default `output/<name>/`): `predictions.csv`, plus `profile.tsv` and `profile.png` in `-sub` / `-alanines` mode.
 
 The original entry point `run_esmrank_pipeline.sh [-h] --input INPUT ...` still works (it just calls `esmrank run`), so SLURM and Slivka setups keep working.
 
-From Python:
+### From Python
 
 ```python
-from esmrank import run_pipeline
+import esmrank
 
-run_pipeline("protein.fasta", sub=True, outdir="output")
+# make sure the pretrained files are available (downloads them only if missing)
+model_dir = esmrank.ensure_models()
+
+# FASTA mode: returns a DataFrame with columns `ids` and `prediction`
+df = esmrank.rank_variants("protein.fasta", sub=True, model_dir=model_dir)
+
+# CSV mode (columns hgvsp, seq_wt, seq_mu)
+df = esmrank.rank_variants("variants.csv", csv=True)
+
+# same as above but also downloads the models if they are not there yet
+df = esmrank.rank_variants("protein.fasta", alanines=True, auto_download=True)
 ```
+
+| Function | What it does |
+|----------|--------------|
+| `esmrank.ensure_models(model_dir=None)` | Returns the model directory; downloads the files only if they are missing (into `model_dir`, `$ESMRANK_MODEL_DIR`, or `~/.cache/esmrank/model`) |
+| `esmrank.download_models(dest=None, force=False, verify=True)` | Always downloads (unless already present and not `force`) |
+| `esmrank.find_model_dir(explicit=None)` | Locates existing model files, raises `FileNotFoundError` if none |
+| `esmrank.rank_variants(input, ...)` | Runs the pipeline and returns the predictions as a DataFrame |
+| `esmrank.run_pipeline(input, ...)` | Runs the pipeline and returns the output directory (also has `profile.tsv` / `profile.png`) |
+
+`rank_variants` and `run_pipeline` take the same keyword arguments as the CLI: `csv`, `sub`, `indel`, `alanines`, `outdir`, `model_dir`, `esm_model`, `batch_size`, `gpu_ids`, plus `auto_download`. On the command line the equivalent of `auto_download` is `esmrank run --download ...`.
 
 ---
 
@@ -152,6 +172,7 @@ esmrank run --input protein.fasta -alanines
 | `-alanines` | Generate alanine substitutions for each position |
 | `--outdir` | Output root directory (default: `output`) |
 | `--model-dir` | Directory with the pretrained model files |
+| `--download` | Download the model files first if they are not already present |
 | `--gpus` | Comma-separated CUDA device ids (default: all) |
 | `--batch-size` | Worker batch size for the ESM step (default: 128) |
 | `--esm-model` | ESM-2 checkpoint name (default: `esm2_t33_650M_UR50D`) |

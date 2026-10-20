@@ -1,5 +1,6 @@
 """Download the pretrained model files from Zenodo."""
 import hashlib
+import os
 import shutil
 import sys
 import tarfile
@@ -7,7 +8,8 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-from .paths import REQUIRED_MODEL_FILES, default_model_dir, missing_model_files
+from .paths import (MODEL_DIR_ENV, REQUIRED_MODEL_FILES, default_model_dir,
+                    find_model_dir, missing_model_files)
 
 ZENODO_RECORD = '18773439'
 ARCHIVE_NAME = 'ESMRank.tar.gz'
@@ -98,3 +100,21 @@ def download_models(dest=None, force=False, verify=True):
         raise RuntimeError(f'download finished but {dest} is missing: {", ".join(missing)}')
     print(f'models installed in {dest}')
     return dest
+
+
+def ensure_models(model_dir=None, *, verify=True):
+    """Return a directory with the model files, downloading them only if missing.
+
+    With ``model_dir=None`` the usual lookup applies (``$ESMRANK_MODEL_DIR``,
+    ``./model``, the user cache); if nothing complete is found, the files are
+    downloaded into ``$ESMRANK_MODEL_DIR`` when set, else the user cache.
+    With an explicit ``model_dir`` that is incomplete, they are downloaded there.
+    """
+    if model_dir is None:
+        try:
+            return find_model_dir()
+        except FileNotFoundError:
+            model_dir = os.environ.get(MODEL_DIR_ENV) or default_model_dir()
+    elif not missing_model_files(model_dir):
+        return Path(model_dir)
+    return download_models(dest=model_dir, verify=verify)
