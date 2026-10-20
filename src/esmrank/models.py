@@ -1,4 +1,5 @@
 """Download the pretrained model files from Zenodo."""
+import gzip
 import hashlib
 import os
 import shutil
@@ -18,9 +19,20 @@ ARCHIVE_URL = f'https://zenodo.org/records/{ZENODO_RECORD}/files/{ARCHIVE_NAME}?
 ARCHIVE_MD5 = '5e073fe91a50523ff03baf0f4307773c'
 
 
-def _download(url, dest, expected_md5=None):
+def _md5_of(path):
     md5 = hashlib.md5()
-    with urllib.request.urlopen(url) as resp, open(dest, 'wb') as out:
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            md5.update(chunk)
+    return md5.hexdigest()
+
+
+def _download(url, dest, expected_md5=None):
+    """Download ``url`` to ``dest`` (via ``dest.part``; only kept if the checksum matches)."""
+    dest = Path(dest)
+    part = dest.with_name(dest.name + '.part')
+    md5 = hashlib.md5()
+    with urllib.request.urlopen(url) as resp, open(part, 'wb') as out:
         total = int(resp.headers.get('Content-Length') or 0)
         done = 0
         while True:
@@ -35,9 +47,11 @@ def _download(url, dest, expected_md5=None):
                       end='', file=sys.stderr, flush=True)
     print(file=sys.stderr)
     if expected_md5 and md5.hexdigest() != expected_md5:
+        part.unlink()
         raise RuntimeError(
             f'checksum mismatch for {ARCHIVE_NAME}: got {md5.hexdigest()}, '
             f'expected {expected_md5} (re-run with --no-verify to skip the check)')
+    os.replace(part, dest)
 
 
 def _safe_extract(archive, dest):
@@ -53,51 +67,97 @@ def _safe_extract(archive, dest):
         tar.extractall(dest)
 
 
-def _find_model_root(extracted):
-    """Directory (inside the extracted archive) that holds the model files."""
-    for marker in REQUIRED_MODEL_FILES:
-        hits = sorted(Path(extracted).rglob(marker))
-        if hits:
-            return hits[0].parent
-    return None
+def _locate(extracted, name):
+    """Find ``name`` anywhere in the extracted archive -> (path, is_gzipped) or (None, False)."""
+    hits = sorted(Path(extracted).rglob(name))
+    if hits:
+        return hits[0], False
+    hits = sorted(Path(extracted).rglob(name + '.gz'))
+    if hits:
+        return hits[0], True
+    return None, False
 
 
-def download_models(dest=None, force=False, verify=True):
-    """Download and unpack the model files into ``dest`` (default: user cache)."""
+def _place(src, target, gzipped=False):
+    if target.exists():
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
+    if gzipped:
+        with gzip.open(src, 'rb') as f_in, open(target, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    else:
+        shutil.move(str(src), str(target))
+
+
+def _describe(extracted, limit=25):
+    files = [p for p in Path(extracted).rglob('*') if p.is_file()]
+    files.sort(key=lambda p: p.stat().st_size, reverse=True)
+    lines = [f'  {p.relative_to(extracted)}  ({p.stat().st_size / 1e6:,.1f} MB)'
+             for p in files[:limit]]
+    more = f'\n  ... and {len(files) - limit} more files' if len(files) > limit else ''
+    return '\n'.join(lines) + more
+
+
+def download_models(dest=None, force=False, verify=True, archive=None):
+    """Download and unpack the model files into ``dest`` (default: user cache).
+
+    Each required file is looked up anywhere inside the archive. The downloaded
+    archive is kept next to ``dest`` if installation fails, so a retry does not
+    download it again. Pass ``archive=`` to use an already downloaded
+    ``ESMRank.tar.gz`` instead.
+    """
     dest = Path(dest) if dest else default_model_dir()
     if not force and not missing_model_files(dest):
         print(f'model files already present in {dest} (use --force to re-download)')
         return dest
 
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=dest.parent, prefix='.esmrank-dl-') as tmp:
-        archive = Path(tmp) / ARCHIVE_NAME
-        print(f'fetching {ARCHIVE_URL}')
-        _download(ARCHIVE_URL, archive, ARCHIVE_MD5 if verify else None)
+    downloaded = None
+    if archive is not None:
+        archive = Path(archive)
+        if verify and _md5_of(archive) != ARCHIVE_MD5:
+            raise RuntimeError(
+                f'{archive} does not match the expected md5 (use --no-verify to skip the check)')
+    else:
+        dl_dir = dest.parent / '.esmrank-download'
+        dl_dir.mkdir(exist_ok=True)
+        archive = downloaded = dl_dir / ARCHIVE_NAME
+        if archive.exists() and (not verify or _md5_of(archive) == ARCHIVE_MD5):
+            print(f'reusing previously downloaded {archive}')
+        else:
+            print(f'fetching {ARCHIVE_URL}')
+            _download(ARCHIVE_URL, archive, ARCHIVE_MD5 if verify else None)
 
+    with tempfile.TemporaryDirectory(dir=dest.parent, prefix='.esmrank-dl-') as tmp:
         print('extracting archive')
         extracted = Path(tmp) / 'extracted'
         extracted.mkdir()
         _safe_extract(archive, extracted)
 
-        root = _find_model_root(extracted)
-        if root is None:
-            raise RuntimeError(
-                f'none of {", ".join(REQUIRED_MODEL_FILES)} found in {ARCHIVE_NAME}')
-
         dest.mkdir(parents=True, exist_ok=True)
-        for item in root.iterdir():
-            target = dest / item.name
-            if target.exists():
-                if target.is_dir():
-                    shutil.rmtree(target)
-                else:
-                    target.unlink()
-            shutil.move(str(item), str(target))
+        found = {name: _locate(extracted, name) for name in REQUIRED_MODEL_FILES}
+        absent = [name for name, (src, _) in found.items() if src is None]
+        listing = _describe(extracted) if absent else ''  # before files are moved out
+        for name, (src, gzipped) in found.items():
+            if src is not None:
+                _place(src, dest / name, gzipped)
 
-    missing = missing_model_files(dest)
-    if missing:
-        raise RuntimeError(f'download finished but {dest} is missing: {", ".join(missing)}')
+        missing = missing_model_files(dest)
+        if missing:
+            raise RuntimeError(
+                f'{ARCHIVE_NAME} does not contain: {", ".join(missing)}.\n'
+                f'Largest files in the archive:\n{listing}\n'
+                f'The archive is kept at {archive}; if you obtain the missing file(s) '
+                f'elsewhere, copy them into {dest}.')
+
+    if downloaded is not None:
+        downloaded.unlink(missing_ok=True)
+        try:
+            downloaded.parent.rmdir()
+        except OSError:
+            pass
     print(f'models installed in {dest}')
     return dest
 

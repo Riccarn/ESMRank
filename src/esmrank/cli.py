@@ -51,6 +51,8 @@ def build_parser():
                     help='where to put the files (default: ~/.cache/esmrank/model)')
     dl.add_argument('--force', action='store_true', help='download again even if present')
     dl.add_argument('--no-verify', action='store_true', help='skip the md5 check')
+    dl.add_argument('--archive', default=None,
+                    help='use an already downloaded ESMRank.tar.gz instead of fetching it')
     return parser
 
 
@@ -59,7 +61,8 @@ def main(argv=None):
 
     if args.command == 'download-models':
         from .models import download_models
-        download_models(dest=args.dest, force=args.force, verify=not args.no_verify)
+        download_models(dest=args.dest, force=args.force, verify=not args.no_verify,
+                        archive=args.archive)
         return 0
 
     from .pipeline import run_pipeline

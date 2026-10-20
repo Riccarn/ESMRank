@@ -31,7 +31,7 @@ The package does not bundle the models (~830 MB, hosted on Zenodo: https://zenod
 esmrank download-models
 ```
 
-They are stored in `~/.cache/esmrank/model` (or `--dest DIR`). At run time the model directory is looked up in this order: `--model-dir`, `$ESMRANK_MODEL_DIR`, `./model`, then the cache directory above.
+They are stored in `~/.cache/esmrank/model` (or `--dest DIR`). Each required file (`esm_xgb_rank_rrf.json`, `Pfam-A.hmm`) is looked up anywhere inside the archive. If the installation fails the downloaded archive is kept, so re-running does not download it again; an archive you already have can be used with `esmrank download-models --archive ESMRank.tar.gz`. At run time the model directory is looked up in this order: `--model-dir`, `$ESMRANK_MODEL_DIR`, `./model`, then the cache directory above.
 
 ### Install from source (development)
 
