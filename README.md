@@ -18,7 +18,7 @@ The method frames variant effect prediction as a **learning-to-rank problem**, l
 Install a `torch` build that matches your CUDA setup first (see https://pytorch.org), then:
 
 ```bash
-pip install git+https://github.com/Riccarn/ESMRank.git@pip-package
+pip install git+https://github.com/gambalab/ESMRank.git
 ```
 
 This provides the `esmrank` command (and `python -m esmrank`).
@@ -36,9 +36,8 @@ They are stored in `~/.cache/esmrank/model` (or `--dest DIR`). Each required fil
 ### Install from source (development)
 
 ```bash
-git clone https://github.com/Riccarn/ESMRank.git
+git clone https://github.com/gambalab/ESMRank.git
 cd ESMRank
-git checkout pip-package
 python -m venv ESMRank_venv && source ESMRank_venv/bin/activate
 pip install -e ".[test]"
 esmrank download-models
