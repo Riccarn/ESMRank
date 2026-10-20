@@ -96,7 +96,7 @@ artifacts.
 
 Commercial use requires prior written permission from the authors or rights holders,
 who can be contacted through the ESMRank repository
-(https://github.com/Riccarn/ESMRank).
+(https://github.com/gambalab/ESMRank).
 
 ## 12. Third-party components and software license
 

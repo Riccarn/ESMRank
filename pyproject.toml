@@ -49,8 +49,8 @@ dependencies = [
 test = ["pytest"]
 
 [project.urls]
-Homepage = "https://github.com/Riccarn/ESMRank"
-Issues = "https://github.com/Riccarn/ESMRank/issues"
+Homepage = "https://github.com/gambalab/ESMRank"
+Issues = "https://github.com/gambalab/ESMRank/issues"
 
 [project.scripts]
 esmrank = "esmrank.cli:main"

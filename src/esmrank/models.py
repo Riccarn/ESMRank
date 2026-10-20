@@ -18,7 +18,7 @@ ARCHIVE_URL = f'https://zenodo.org/records/{ZENODO_RECORD}/files/{ARCHIVE_NAME}?
 # md5 as shown on the Zenodo record page; skip the check with --no-verify.
 ARCHIVE_MD5 = '5e073fe91a50523ff03baf0f4307773c'
 
-WEIGHTS_LICENSE_URL = 'https://github.com/Riccarn/ESMRank/blob/master/LICENSE_WEIGHTS.md'
+WEIGHTS_LICENSE_URL = 'https://github.com/gambalab/ESMRank/blob/master/LICENSE_WEIGHTS.md'
 WEIGHTS_LICENSE_NOTICE = (
     'Note: the ESMRank model parameters are distributed under a non-commercial '
     f'research license ({WEIGHTS_LICENSE_URL}). By downloading and using them you '
