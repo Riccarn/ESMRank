@@ -455,12 +455,18 @@ def parse_gpu_ids():
         return list(range(torch.cuda.device_count()))
     return []
 
-def main():
-    sample_name = os.environ['SAMPLE_NAME']
-    in_file = f'output/{sample_name}/masked_sequences.csv'
-    out_file = f'output/{sample_name}/esm_features.csv'
+def extract_esm_features(sample_dir, model_name=None, worker_batch_size=None,
+                         gpu_ids=None):
+    """Reads ``masked_sequences.csv``; writes ``esm_features.csv``.
+
+    Defaults come from the ESM_MODEL_NAME, ESM_WORKER_BATCH_SIZE, ESM_GPU_IDS and
+    ESM_CHECKPOINT_DIR environment variables, then from the built-in defaults.
+    """
+    sample_dir = os.fspath(sample_dir)
+    in_file = os.path.join(sample_dir, 'masked_sequences.csv')
+    out_file = os.path.join(sample_dir, 'esm_features.csv')
     ckpt_dir = os.environ.get('ESM_CHECKPOINT_DIR',
-                              f'output/{sample_name}/checkpoints')
+                              os.path.join(sample_dir, 'checkpoints'))
     os.makedirs(ckpt_dir, exist_ok=True)
 
     X = pd.read_csv(in_file)
@@ -472,12 +478,15 @@ def main():
     masked_wt = list(X['masked_wt'])
     masked_mu = list(X['masked_mu'])
 
-    gpu_ids = parse_gpu_ids()
+    if gpu_ids is None:
+        gpu_ids = parse_gpu_ids()
     if not gpu_ids:
         raise RuntimeError('No CUDA devices available.')
 
-    model_name = os.environ.get('ESM_MODEL_NAME', 'esm2_t33_650M_UR50D')
-    worker_batch_size = int(os.environ.get('ESM_WORKER_BATCH_SIZE', '128'))
+    if model_name is None:
+        model_name = os.environ.get('ESM_MODEL_NAME', 'esm2_t33_650M_UR50D')
+    if worker_batch_size is None:
+        worker_batch_size = int(os.environ.get('ESM_WORKER_BATCH_SIZE', '128'))
 
     res = extract_features_workqueue(
         model_name=model_name,
@@ -490,6 +499,4 @@ def main():
 
     res.to_csv(out_file, index=False)
     print(f'wrote {out_file}')
-
-if __name__ == '__main__':
-    main()
+    return out_file

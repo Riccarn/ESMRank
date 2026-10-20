@@ -1,0 +1,13 @@
+# Python / packaging
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+ESMRank_venv/
+.pytest_cache/
+
+# Pipeline products and downloaded models (large, not part of the package)
+/output/
+/model/
