@@ -1,6 +1,7 @@
 """Command line interface: ``esmrank run`` and ``esmrank download-models``."""
 import argparse
 import sys
+from pathlib import Path
 
 from . import __version__
 
@@ -68,7 +69,7 @@ def main(argv=None):
     from .pipeline import run_pipeline
     try:
         run_pipeline(
-            args.input, outdir=args.outdir, csv=args.csv, sub=args.sub,
+            Path(args.input), outdir=args.outdir, csv=args.csv, sub=args.sub,
             indel=args.indel, alanines=args.alanines, model_dir=args.model_dir,
             esm_model=args.esm_model, batch_size=args.batch_size, gpu_ids=args.gpus,
             auto_download=args.download)

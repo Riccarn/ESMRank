@@ -53,30 +53,52 @@ pytest
 ### From Python
 
 ```python
+import pandas as pd
 import esmrank
 
 # make sure the pretrained files are available (downloads them only if missing)
 model_dir = esmrank.ensure_models()
 
-# FASTA mode: returns a DataFrame with columns `ids` and `prediction`
-df = esmrank.rank_variants("protein.fasta", sub=True, model_dir=model_dir)
+# a protein sequence instead of a FASTA file
+seq = "MSEQNNTEMTFQIQRIYTKDISFEAPNAPHVFQKDWQPEVKLDLDTASSQLADDVYEVVLRVTVTASLG"
+df = esmrank.rank_variants(seq, sub=True)                    # all missense variants
+df = esmrank.rank_variants(sequence=seq, alanines=True)      # explicit form, any length
 
-# CSV mode (columns hgvsp, seq_wt, seq_mu)
+# a DataFrame instead of a CSV file (columns hgvsp, seq_wt, seq_mu; extra columns are kept)
+variants = pd.DataFrame({"hgvsp": ["p.Q12V"], "seq_wt": [seq], "seq_mu": [seq[:11] + "V" + seq[12:]]})
+df = esmrank.rank_variants(variants)
+
+# files work as well
+df = esmrank.rank_variants("protein.fasta", sub=True, model_dir=model_dir)
 df = esmrank.rank_variants("variants.csv", csv=True)
 
-# same as above but also downloads the models if they are not there yet
-df = esmrank.rank_variants("protein.fasta", alanines=True, auto_download=True)
+# download the models first if they are not there yet
+df = esmrank.rank_variants(seq, alanines=True, auto_download=True)
 ```
+
+`rank_variants` returns a DataFrame with columns `ids` and `prediction`.
+
+How the input is interpreted:
+
+| You pass | Treated as |
+|----------|------------|
+| a `pandas.DataFrame` | table of variants (same as CSV mode); `sub` / `indel` / `alanines` do not apply |
+| a string that is an existing file | FASTA file, or CSV file with `csv=True` |
+| a string starting with `>` | text of a single-record FASTA |
+| an all-uppercase string of at least 10 letters that is not an existing file | protein sequence |
+| `sequence="..."` | protein sequence, explicitly (any length, any case) |
+
+A sequence needs at least one of `sub`, `indel`, `alanines`, and may only contain the 20 standard amino acids. Any other string that is not a file raises `FileNotFoundError`, so a mistyped file name is never read as a sequence (use `sequence=` for short ones). Results are still written to `<outdir>/<name>/`: `name` defaults to the file name, the FASTA header, or a short hash of the sequence / DataFrame, and can be set with `name="..."`. The command line only accepts files.
 
 | Function | What it does |
 |----------|--------------|
 | `esmrank.ensure_models(model_dir=None)` | Returns the model directory; downloads the files only if they are missing (into `model_dir`, `$ESMRANK_MODEL_DIR`, or `~/.cache/esmrank/model`) |
 | `esmrank.download_models(dest=None, force=False, verify=True)` | Always downloads (unless already present and not `force`) |
 | `esmrank.find_model_dir(explicit=None)` | Locates existing model files, raises `FileNotFoundError` if none |
-| `esmrank.rank_variants(input, ...)` | Runs the pipeline and returns the predictions as a DataFrame |
-| `esmrank.run_pipeline(input, ...)` | Runs the pipeline and returns the output directory (also has `profile.tsv` / `profile.png`) |
+| `esmrank.rank_variants(data, ...)` | Runs the pipeline and returns the predictions as a DataFrame |
+| `esmrank.run_pipeline(data, ...)` | Runs the pipeline and returns the output directory (also has `profile.tsv` / `profile.png`) |
 
-`rank_variants` and `run_pipeline` take the same keyword arguments as the CLI: `csv`, `sub`, `indel`, `alanines`, `outdir`, `model_dir`, `esm_model`, `batch_size`, `gpu_ids`, plus `auto_download`. On the command line the equivalent of `auto_download` is `esmrank run --download ...`.
+`rank_variants` and `run_pipeline` take the same options as the CLI: `csv`, `sub`, `indel`, `alanines`, `outdir`, `model_dir`, `esm_model`, `batch_size`, `gpu_ids`, plus `sequence`, `name` and `auto_download`. On the command line the equivalent of `auto_download` is `esmrank run --download ...`.
 
 ### From command line
 
