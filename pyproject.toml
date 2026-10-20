@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "esmrank"
-version = "0.1.0"
+dynamic = ["version"]  # single source: esmrank.__version__
 description = "A learn-to-rank approach for protein variant effect prediction"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -60,3 +60,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 esmrank = ["data/*.csv"]
+
+[tool.setuptools.dynamic]
+version = { attr = "esmrank.__version__" }
