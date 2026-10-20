@@ -9,64 +9,63 @@ The method frames variant effect prediction as a **learning-to-rank problem**, l
 ## Installation
 
 ### Requirements
-- Python **3.10** (recommended)
-- Linux / macOS environment
-- `bash`
+- Python **3.10+**
+- Linux / macOS
+- A CUDA GPU (the ESM-2 feature step needs one)
 
-### Setup instructions
+### Install with pip
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/j3rk0/ESMRank.git
-   ```
+Install a `torch` build that matches your CUDA setup first (see https://pytorch.org), then:
 
-2. **Move into the repository directory**
-   ```bash
-   cd ESMRank
-   ```
+```bash
+pip install git+https://github.com/Riccarn/ESMRank.git@pip-package
+```
 
-3. **Create a virtual environment**
-   ```bash
-   python -m venv ESMRank_venv
-   ```
+This provides the `esmrank` command (and `python -m esmrank`).
 
-4. **Activate the virtual environment**
-   ```bash
-   source ESMRank_venv/bin/activate
-   ```
+### Download the pretrained models
 
-5. **Install Python dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+The package does not bundle the models (~830 MB, hosted on Zenodo: https://zenodo.org/records/18773439). Fetch them once with:
 
-6. **Download pretrained models**
-   
-   Download `ESMRank_models.tar.gz` from:
+```bash
+esmrank download-models
+```
 
-   ```
-   https://zenodo.org/records/18773439
-   ```
+They are stored in `~/.cache/esmrank/model` (or `--dest DIR`). At run time the model directory is looked up in this order: `--model-dir`, `$ESMRANK_MODEL_DIR`, `./model`, then the cache directory above.
 
-   Then extract it in the repository root:
-   ```bash
-   tar -xvf ESMRank_models.tar.gz
-   ```
-7. move the ```models``` directory into the repository root:
-   ```bash
-   mv ESMRank/model ./
-   ```
-   
-   
+### Install from source (development)
+
+```bash
+git clone https://github.com/Riccarn/ESMRank.git
+cd ESMRank
+git checkout pip-package
+python -m venv ESMRank_venv && source ESMRank_venv/bin/activate
+pip install -e ".[test]"
+esmrank download-models
+pytest
+```
+
+`requirements.txt` still lists the exact versions the pipeline was developed against; `pyproject.toml` declares compatible ranges.
 
 ---
 
 ## Usage
 
-The main pipeline can be executed via:
-
 ```bash
-run_esmrank_pipeline.sh [-h] --input INPUT [-csv] [-sub] [-indel] [-alanines]
+esmrank run --input INPUT [-csv] [-sub] [-indel] [-alanines]
+            [--outdir DIR] [--model-dir DIR] [--gpus 0,1] [--batch-size N] [--esm-model NAME]
+```
+
+Results are written to `<outdir>/<input file name>/` (default `output/<name>/`): `predictions.csv`, plus `profile.tsv` and `profile.png` in `-sub` / `-alanines` mode.
+
+The original entry point `run_esmrank_pipeline.sh [-h] --input INPUT ...` still works (it just calls `esmrank run`), so SLURM and Slivka setups keep working.
+
+From Python:
+
+```python
+from esmrank import run_pipeline
+
+run_pipeline("protein.fasta", sub=True, outdir="output")
 ```
 
 ---
@@ -95,7 +94,7 @@ p.A123V,MSEQNNTEMTFQIQRIYTKDISFEAPNAPHVFQ...,MSEQNNTEMTFQIQRIYTKDISFEVPNAPHVFQ..
 
 To run in CSV mode:
 ```bash
-run_esmrank_pipeline.sh --input variants.csv -csv
+esmrank run --input variants.csv -csv
 ```
 
 ---
@@ -121,22 +120,22 @@ Example execution:
 generating all missenses variants:
 
 ```bash
-run_esmrank_pipeline.sh --input protein.fasta -sub
+esmrank run --input protein.fasta -sub
 ```
 generating all single single indel
 
 ```bash
-run_esmrank_pipeline.sh --input protein.fasta -indel
+esmrank run --input protein.fasta -indel
 ```
 generating all missenses and single indel
 
 ```bash
-run_esmrank_pipeline.sh --input protein.fasta -sub -indel
+esmrank run --input protein.fasta -sub -indel
 ```
 generate alanine scanning ( alanines substitution only ) 
 
 ```bash
-run_esmrank_pipeline.sh --input protein.fasta -alanines
+esmrank run --input protein.fasta -alanines
 ```
 
 ---
@@ -146,18 +145,25 @@ run_esmrank_pipeline.sh --input protein.fasta -alanines
 | Argument | Description |
 |--------|-------------|
 | `-h` | Show help message |
-| `--input` | Path to input file (CSV or FASTA) |
+| `--input`, `-i` | Path to input file (CSV or FASTA) |
 | `-csv` | Enable CSV input mode (default: FASTA mode) |
 | `-sub` | Generate all possible missense substitutions |
 | `-indel` | Generate all possible insertions and deletions |
 | `-alanines` | Generate alanine substitutions for each position |
+| `--outdir` | Output root directory (default: `output`) |
+| `--model-dir` | Directory with the pretrained model files |
+| `--gpus` | Comma-separated CUDA device ids (default: all) |
+| `--batch-size` | Worker batch size for the ESM step (default: 128) |
+| `--esm-model` | ESM-2 checkpoint name (default: `esm2_t33_650M_UR50D`) |
+
+The environment variables `ESM_GPU_IDS`, `ESM_WORKER_BATCH_SIZE`, `ESM_MODEL_NAME` and `ESM_CHECKPOINT_DIR` are still honoured.
 
 ---
 
 ## Notes
 
 - CSV and FASTA modes are **mutually exclusive**.
-- In FASTA mode, at least one of `-sub` or `-indel` must be specified.
+- In FASTA mode, at least one of `-sub`, `-indel` or `-alanines` must be specified.
 - Runtime and memory usage scale with protein length and number of generated variants.
 
 ---
@@ -174,4 +180,3 @@ If you use ESMRank in your research, please cite:
   year={TBD}
 }
 ```
-
