@@ -31,7 +31,7 @@ The package does not bundle the models (~830 MB, hosted on Zenodo: https://zenod
 esmrank download-models
 ```
 
-They are stored in `~/.cache/esmrank/model` (or `--dest DIR`). Each required file (`esm_xgb_rank_rrf.json`, `Pfam-A.hmm`) is looked up anywhere inside the archive. If the installation fails the downloaded archive is kept, so re-running does not download it again; an archive you already have can be used with `esmrank download-models --archive ESMRank.tar.gz`. At run time the model directory is looked up in this order: `--model-dir`, `$ESMRANK_MODEL_DIR`, `./model`, then the cache directory above.
+They are stored in `~/.cache/esmrank/model` (or `--dest DIR`). If the installation fails the downloaded archive is kept, so re-running does not download it again; an archive you already have can be used with `esmrank download-models --archive ESMRank.tar.gz`. At run time the model directory is looked up in this order: `--model-dir`, `$ESMRANK_MODEL_DIR`, `./model`, then the cache directory above.
 
 ### Install from source (development)
 
@@ -49,15 +49,6 @@ pytest
 ---
 
 ## Usage
-
-```bash
-esmrank run --input INPUT [-csv] [-sub] [-indel] [-alanines]
-            [--outdir DIR] [--model-dir DIR] [--download] [--gpus 0,1] [--batch-size N] [--esm-model NAME]
-```
-
-Results are written to `<outdir>/<input file name>/` (default `output/<name>/`): `predictions.csv`, plus `profile.tsv` and `profile.png` in `-sub` / `-alanines` mode.
-
-The original entry point `run_esmrank_pipeline.sh [-h] --input INPUT ...` still works (it just calls `esmrank run`), so SLURM and Slivka setups keep working.
 
 ### From Python
 
@@ -86,6 +77,15 @@ df = esmrank.rank_variants("protein.fasta", alanines=True, auto_download=True)
 | `esmrank.run_pipeline(input, ...)` | Runs the pipeline and returns the output directory (also has `profile.tsv` / `profile.png`) |
 
 `rank_variants` and `run_pipeline` take the same keyword arguments as the CLI: `csv`, `sub`, `indel`, `alanines`, `outdir`, `model_dir`, `esm_model`, `batch_size`, `gpu_ids`, plus `auto_download`. On the command line the equivalent of `auto_download` is `esmrank run --download ...`.
+
+### From command line
+
+```bash
+esmrank run --input INPUT [-csv] [-sub] [-indel] [-alanines]
+            [--outdir DIR] [--model-dir DIR] [--download] [--gpus 0,1] [--batch-size N] [--esm-model NAME]
+```
+
+Results are written to `<outdir>/<input file name>/` (default `output/<name>/`): `predictions.csv`, plus `profile.tsv` and `profile.png` in `-sub` / `-alanines` mode.
 
 ---
 
