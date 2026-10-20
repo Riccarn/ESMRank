@@ -82,3 +82,19 @@ def generate_variants(input_path, sample_dir, *, csv=False, sub=False,
     seq = read_single_fasta_sequence(input_path)
     build_variants(seq, sub=sub, indel=indel, alanines=alanines).to_csv(out_file)
     return out_file
+
+
+def generate_variants_from_sequence(seq, sample_dir, *, sub=False, indel=False,
+                                    alanines=False):
+    """Like :func:`generate_variants` for a sequence string instead of a FASTA file."""
+    validate_mode(csv=False, sub=sub, indel=indel, alanines=alanines)
+    out_file = Path(sample_dir) / 'temp.csv'
+    build_variants(seq, sub=sub, indel=indel, alanines=alanines).to_csv(out_file)
+    return out_file
+
+
+def write_variants_table(df, sample_dir):
+    """Like csv mode of :func:`generate_variants`, with a DataFrame instead of a CSV file."""
+    out_file = Path(sample_dir) / 'temp.csv'
+    df.to_csv(out_file, index=None)
+    return out_file
